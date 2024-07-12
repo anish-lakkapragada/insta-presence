@@ -1,0 +1,11 @@
+instagrapi_settings.json
+*e.env 
+api/instagrapi_settings.json
+*.json
+*.DS_STORE
+__pycache__
+.vscode
+.vscode-test
+out
+out/
+node_modules
