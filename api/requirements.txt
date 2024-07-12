@@ -1,3 +1,4 @@
 instagrapi
 fastapi
 pydantic
+gunicorn
