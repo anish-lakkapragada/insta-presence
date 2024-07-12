@@ -2,3 +2,4 @@ instagrapi
 fastapi
 pydantic
 gunicorn
+pillow
