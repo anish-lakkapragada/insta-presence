@@ -2,8 +2,10 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+const ENDPOINT = "https://insta-presence.onrender.com"; // http://127.0.0.1:6969
+
 async function updateNote(username: string, newNote: string, params: {password: string, useStoredSession: boolean}) {
-	const response = await fetch(`http://127.0.0.1:6969/update/${username}/${newNote}`, {
+	const response = await fetch(`${ENDPOINT}/update/${username}/${newNote}`, {
 		method: "POST",
 		body: JSON.stringify(params),
 		headers: {

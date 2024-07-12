@@ -1,5 +1,5 @@
 instagrapi
 fastapi
 pydantic
-gunicorn
+uvicorn
 pillow

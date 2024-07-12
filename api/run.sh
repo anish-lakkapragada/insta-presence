@@ -1,1 +1,1 @@
-uvicorn main:app --reload --env-file .env --port 6969
+uvicorn main:app --reload --port 6969
