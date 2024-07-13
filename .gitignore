@@ -9,4 +9,3 @@ __pycache__
 out
 out/
 node_modules
-*.vsix

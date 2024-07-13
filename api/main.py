@@ -39,16 +39,17 @@ async def root(username: str ,newNote: str, params: BodyParams):
     if username in USERNAMES_TO_CLIENTS: 
         cl = USERNAMES_TO_CLIENTS[username]
 
+    loading_file = f"{username}-{custom_hash(params.password)}-instagrapi_settings.json"
     if not cl or not params.useStoredSession: 
         """This means that a re-login is required."""
         cl = Client() # don't login with current session data 
-        if params.useStoredSession and os.path.isfile("instagrapi_settings.json"): 
+        if params.useStoredSession and os.path.isfile(loading_file): 
             print("loading settings.")
-            cl.load_settings(f"{username}-{params.password}-instagrapi_settings.json") # load the local settings
+            cl.load_settings(loading_file) # load the local settings
         elif params.useStoredSession == False:
             print("not loading settings here.") 
         cl.login(username, params.password)
-        cl.dump_settings(f"{username}-{params.password}-instagrapi_settings.json") # dumping the settings 
+        cl.dump_settings(loading_file) # dumping the settings 
         USERNAMES_TO_CLIENTS[username] = cl # storing the cl. 
 
     try: 
