@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-
 async function updateNote(username: string, newNote: string, params: {password: string, useStoredSession: boolean}, ENDPOINT: string) {
 	const response = await fetch(`${ENDPOINT}/update/${username}/${newNote}`, {
 		method: "POST",
@@ -131,7 +130,37 @@ export function changeNote(fileName: string, USERNAME: string, PASSWORD: string,
             }
         }); 
     }
+}
+
+export function showLoadingProgress(text: string, statusBar: vscode.StatusBarItem) : Thenable<boolean> {
+	return vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: text, 
+	}, (progress, token) => {	
+
+		return new Promise((resolve, reject) => {
+			let milliSeconds: number = 0;
+			setInterval(() => {
+				// check if (a) the note has updated on the status bar or if it's been 1 minute already. 
+				milliSeconds += 10; 
+				if (milliSeconds > 60 * 1000) {
+					resolve(false); 
+				}
+
+				if (statusBar.text?.includes("Connected")) {
+					resolve(true);
+				}
+				
+			}, 10); 
+		}); 
+	});
+}
+
+export function validUsername(context: vscode.ExtensionContext) {
+	return typeof(context.globalState.get("USERNAME")) === "string";
+}
 
 
-
+export function validPassword(context: vscode.ExtensionContext) {
+	return typeof(context.globalState.get("PASSWORD")) === "string";
 }

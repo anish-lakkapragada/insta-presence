@@ -1,8 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { changeNote } from './helpers';
-const ENDPOINT = "https://insta-presence.onrender.com";
+import { changeNote, showLoadingProgress, validUsername, validPassword } from './helpers';
+const ENDPOINT = "http://127.0.0.1:6969"; // "https://insta-presence.onrender.com";
 
 const outputChannel = vscode.window.createOutputChannel("My Extension");
 
@@ -37,7 +37,7 @@ function updatePassword(context: vscode.ExtensionContext, resolveIfExists: boole
 		title: "Instagram Password", 
 		password: true
 	}).then((username: string | undefined) => {
-		if (username !== undefined) {context.globalState.update("PASSWORD", username);}
+		if (username !== undefined) {context.globalState.update("PASSWORD", username);} 
 	}); 
 }
 
@@ -51,8 +51,34 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const credentialsReset = vscode.commands.registerCommand('insta-presence.credentialsReset', () => {
 		updateUsername(context, false).then(() => {
-			updatePassword(context, false); // then run this shit.
+			updatePassword(context, false).then(() => {
+				vscode.window.showInformationMessage('It can take up to a minute to re-connect to Instagram after changing your username and/or password.'); 
+			}); 
 		}); 
+	});
+	
+	const toggleEnablement = vscode.commands.registerCommand('insta-presence.toggleEnablement', () => {
+		const enablement = context.globalState.get("ENABLEMENT_STATUS"); 
+		if (enablement === "TRUE") {
+			context.globalState.update("ENABLEMENT_STATUS", "FALSE");
+			// send this 
+			fetch(`${ENDPOINT}/${USERNAME}`, {
+				method: "DELETE"
+			}).then((response) => {
+				if (response.ok) {statusBar.text = "$(refresh) Reconnect to Instagram Notes";} 
+			}); 
+		}
+		
+		else if (enablement === "FALSE") {
+			context.globalState.update("ENABLEMENT_STATUS", "TRUE");
+			statusBar.text = "$(check) Instagram Notes Enabled";
+			if (typeof(vscode.window.activeTextEditor?.document?.fileName) === "string" && validUsername(context) && validPassword(context)) {
+				// @ts-ignore
+				changeNote(vscode.window.activeTextEditor.document.fileName, context.globalState.get("USERNAME"), context.globalState.get("PASSWORD"), ENDPOINT, statusBar, interval);
+			}
+		}
+
+		else if (typeof(enablement) !== "string") {context.globalState.update("ENABLEMENT_STATUS", "TRUE");}
 	}); 
 
 	let interval: any; 
@@ -73,19 +99,38 @@ export function activate(context: vscode.ExtensionContext) {
 	statusBar.accessibilityInformation = {label: "Status bar for the instagram presence extension.", role: "Clicking on this status bar will trigger the extension to be activated or deactivated."}; 
 	statusBar.backgroundColor = new vscode.ThemeColor("green");
 	statusBar.text = "$(circle-slash) Disconnected from Instagram";
-	statusBar.tooltip = "insta-presence extension status";
+	statusBar.tooltip = "Enable/Disable insta-presence";
+	statusBar.command = "insta-presence.toggleEnablement"; 
 	statusBar.show(); 
 	// console.log(`showing status bar: ${statusBar}`);
 	
+	const prevUSERNAME = context.globalState.get("USERNAME"); 
+	const prevPASSWORD = context.globalState.get("PASSWORD");
 	updateUsername(context, true).then(() => {
 		updatePassword(context, true).then(() => {
 			const USERNAME = context.globalState.get("USERNAME"); 
-			const PASSWORD = context.globalState.get("PASSWORD"); 
-			if (typeof(vscode.window.activeTextEditor?.document?.fileName) === "string") {
+			const PASSWORD = context.globalState.get("PASSWORD");
+			/** set to enabled if enabled **/ 
+			const ENABLEMENT = context.globalState.get("ENABLEMENT_STATUS"); 
+			if (typeof(ENABLEMENT) !== "string") {
+				context.globalState.update("ENABLEMENT_STATUS", "TRUE"); 
+			}
+
+			if (typeof(vscode.window.activeTextEditor?.document?.fileName) === "string" && context.globalState.get("ENABLEMENT_STATUS") === "TRUE") {
 				// @ts-ignore
 				changeNote(vscode.window.activeTextEditor.document.fileName, USERNAME, PASSWORD, ENDPOINT, statusBar, interval); 
+				statusBar.text = "$(loading~spin) Connecting to Instagram"; // add the loading bar.
+				// now use a progress window to show that there is some connectivity. the text should differ based on if the username/password has changed. 
+				showLoadingProgress(prevUSERNAME !== USERNAME || prevPASSWORD !== PASSWORD ? "Connecting to Instagram." : 
+					"It can take up to a minute to connect to Instagram after updating your password.", 
+					statusBar
+				).then((successful: boolean) => {
+					if (!successful) {
+						vscode.window.showInformationMessage('It is taking longer than normal to connect to Instagram. If this issue persists, please email anish.lakkapragada@yale.edu for assistance.'); 
+					}
+				}); 
 			}
-		})
+		});
 	}); 
 
 	vscode.window.onDidChangeActiveTextEditor((event) => {
@@ -106,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
 			clearInterval(interval); // clear this interval 
 		}
 
-		if (typeof(event?.document?.fileName) === "string") {
+		if (typeof(event?.document?.fileName) === "string" && context.globalState.get("ENABLEMENT_STATUS") === "TRUE") {
 			changeNote(event?.document.fileName, USERNAME, PASSWORD, ENDPOINT, statusBar, interval); 
 		}
 		
@@ -114,6 +159,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 	context.subscriptions.push(credentialsReset); 
+	context.subscriptions.push(toggleEnablement);
 }
 
 
