@@ -4,6 +4,8 @@ import * as vscode from 'vscode';
 
 const ENDPOINT = "https://insta-presence.onrender.com"; // http://127.0.0.1:6969
 
+const outputChannel = vscode.window.createOutputChannel("My Extension");
+
 async function updateNote(username: string, newNote: string, params: {password: string, useStoredSession: boolean}) {
 	const response = await fetch(`${ENDPOINT}/update/${username}/${newNote}`, {
 		method: "POST",
@@ -16,6 +18,8 @@ async function updateNote(username: string, newNote: string, params: {password: 
 	const data: any = await response.json(); 
 	console.log('First data below: '); 
 	console.log(data); 
+	console.log("First data below: "); 
+	console.log(data);
 
 	/** We will only be sending a message if it's required. That means if the request lead to some BS. */
 	if (data?.message === 'login_required') {
@@ -30,6 +34,9 @@ async function updateNote(username: string, newNote: string, params: {password: 
 	}
 	else if (data?.message === "credential_error") {
 		return 3; 
+	} 
+	else if (data?.message === "challenge_required") {
+		return 4; 
 	}
 	else {
 		return 0; // success base case. 
@@ -66,7 +73,9 @@ function emojiNote(currentNote: string, truncatedFN: string) {
 		".dart": "🎯",
 		".lua": "🌕", 
 		".env": "🤫", 
-		".gitignore": "🤫"
+		".gitignore": "🤫", 
+		".md": "📄",
+		".json": "🛢"
 	  }; 
 
 	if (truncatedFN.indexOf(".") !== -1) {
@@ -78,7 +87,14 @@ function emojiNote(currentNote: string, truncatedFN: string) {
 	return currentNote; 
 }
 
-function updateUsername(context: vscode.ExtensionContext) {
+function updateUsername(context: vscode.ExtensionContext, resolveIfExists: boolean) {
+	if (resolveIfExists) {
+		const potentialUsername = context.globalState.get("USERNAME"); 
+		if (typeof(potentialUsername) === "string" && potentialUsername.length > 1) {
+			return new Promise(resolve => {setTimeout(resolve, 1);}); 
+		}
+	}
+
 	return vscode.window.showInputBox({
 		prompt: "Please type in your instagram username.", 
 		placeHolder: "<your instagram username>", 
@@ -88,7 +104,14 @@ function updateUsername(context: vscode.ExtensionContext) {
 	}); 
 }
 
-function updatePassword(context: vscode.ExtensionContext) {
+function updatePassword(context: vscode.ExtensionContext, resolveIfExists: boolean) {
+	if (resolveIfExists) {
+		const potentialPassword = context.globalState.get("PASSWORD"); 
+		if (typeof(potentialPassword) === "string" && potentialPassword.length > 1) {
+			return new Promise(resolve => {setTimeout(resolve, 1);}); 
+		}
+	}
+
 	return vscode.window.showInputBox({
 		prompt: "Please type in your instagram password.", 
 		placeHolder: "<your instagram password>", 
@@ -100,13 +123,15 @@ function updatePassword(context: vscode.ExtensionContext) {
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log("activated extensions ....");
+	console.log("Extension activated."); 
+
 	const disposable = vscode.commands.registerCommand('insta-presence.start', () => {
 		vscode.window.showInformationMessage('Starting VSCode Extension for Instagram Presence.');
 	});
 
 	const credentialsReset = vscode.commands.registerCommand('insta-presence.credentialsReset', () => {
-		updateUsername(context).then(() => {
-			updatePassword(context); // then run this shit.
+		updateUsername(context, false).then(() => {
+			updatePassword(context, false); // then run this shit.
 		}); 
 	}); 
 
@@ -116,26 +141,24 @@ export function activate(context: vscode.ExtensionContext) {
 	 * On activation, we need to check if the username and password are stored in vscode extension storage. 
 	 */
 
-	console.log(context.globalState.keys); 
-	console.log(context.globalState.get("USERNAME")); 
-	console.log(context.globalState.get("PASSWORD"));
+	console.log(context.globalState.keys.toString()); 
+	const USERNAME = context.globalState.get("USERNAME"); 
+	const PASSWORD = context.globalState.get("PASSWORD"); 
 
-	if (context.globalState.get("USERNAME") === undefined) {
-		/** asynchronous function to get username input. */ 
-		updateUsername(context); 
-	} 
+	console.log(`username: ${USERNAME}`); 
+	console.log(`password: ${PASSWORD}`);
 
-	if (context.globalState.get("PASSWORD") === undefined) {
-		updatePassword(context);
-	}
+	updateUsername(context, true).then(() => {
+		updatePassword(context, true); // then run this shit.
+	}); 
 
 	/** Instantiate the status bar window. */
 	const statusBar = vscode.window.createStatusBarItem("Status Bar", 1, 2); 
 	statusBar.accessibilityInformation = {label: "Status bar for the instagram presence extension.", role: "Clicking on this status bar will trigger the extension to be activated or deactivated."}; 
 	statusBar.backgroundColor = new vscode.ThemeColor("green");
 	statusBar.text = "$(circle-slash) Disconnected from Instagram";
+	statusBar.tooltip = "insta-presence extension status";
 	statusBar.show(); 
-	statusBar.command = ""
 	console.log(`showing status bar: ${statusBar}`);
 
 	vscode.window.onDidChangeActiveTextEditor((event) => {
@@ -156,7 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
 			clearInterval(interval); // clear this interval 
 		}
 
-		console.log(event);
+		// console.log(event);
 		if (event?.document === undefined) {
 			return; 
 		}
@@ -177,7 +200,7 @@ export function activate(context: vscode.ExtensionContext) {
 		
 			updateNote(USERNAME, newNote, {'useStoredSession': true, 'password': PASSWORD}).then((finalResult) => {
 				/** based on the final result of how everything went, then decide to update the function. */
-				console.log(finalResult); 
+				console.log(finalResult.toString()); 
 
 				if (finalResult === 1) {
 					/** show a vscode information window. */
@@ -187,6 +210,11 @@ export function activate(context: vscode.ExtensionContext) {
 				else if (finalResult === 3) {
 					/** show an error message. */
 					vscode.window.showErrorMessage('Your current credentials are misconfigured. Please run the command to re-enter your username and password in VSCode.')
+				}
+
+				else if (finalResult === 4) {
+					/** Please login to instagram. */
+					vscode.window.showErrorMessage("Please login to Instagram and complete their online challenge. Then the extension will start to work."); 
 				}
 				
 				/** If successful, add the interval tracking. */
@@ -213,11 +241,12 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 
-export function deactivate(context: vscode.ExtensionContext) {
-	const USERNAME = context.globalState.get("USERNAME"); 
-	if (USERNAME) {
-		fetch(`http://127.0.0.1:6969/${USERNAME}`, {
-			method: "DELETE"
-		});
-	}
+export function deactivate() {
+	console.log("WE DEACTIVATING....");
+	// const USERNAME = context.globalState.get("USERNAME"); 
+	// if (USERNAME) {
+	// 	fetch(`${ENDPOINT}/${USERNAME}`, {
+	// 		method: "DELETE"
+	// 	});
+	// }
 }

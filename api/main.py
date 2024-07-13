@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from instagrapi import Client
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, BadCredentials, BadPassword, UserError, UserNotFound
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, BadCredentials, BadPassword, UserError, UserNotFound, ChallengeRequired
 from pydantic import BaseModel
 from collections import defaultdict
 import os
@@ -10,9 +10,12 @@ app = FastAPI()
 USERNAMES_TO_CLIENTS = defaultdict()
 USERNAMES_TO_LAST_NOTES = defaultdict()
 
-# cl = None 
-
-# last_note = None 
+def custom_hash(string):
+    # Use a large prime number for the hash base
+    hash_value = 5381
+    for char in string:
+        hash_value = ((hash_value << 5) + hash_value) + ord(char)  # hash_value * 33 + ord(char)
+    return hash_value
 
 @app.get("/")
 async def root():
@@ -41,11 +44,11 @@ async def root(username: str ,newNote: str, params: BodyParams):
         cl = Client() # don't login with current session data 
         if params.useStoredSession and os.path.isfile("instagrapi_settings.json"): 
             print("loading settings.")
-            cl.load_settings("instagrapi_settings.json") # load the local settings
+            cl.load_settings(f"{username}-{params.password}-instagrapi_settings.json") # load the local settings
         elif params.useStoredSession == False:
             print("not loading settings here.") 
         cl.login(username, params.password)
-        cl.dump_settings("instagrapi_settings.json") # dumping the settings 
+        cl.dump_settings(f"{username}-{params.password}-instagrapi_settings.json") # dumping the settings 
         USERNAMES_TO_CLIENTS[username] = cl # storing the cl. 
 
     try: 
@@ -65,6 +68,10 @@ async def root(username: str ,newNote: str, params: BodyParams):
         print(e)
         print("some credential is screwed.")
         return {'message': 'credential_error'}
+    except ChallengeRequired as e: 
+        print(e)
+        print("a challenge is required ...")
+        return {'message': 'challenge_required'}
     except Exception as e: 
         print(e)
 
