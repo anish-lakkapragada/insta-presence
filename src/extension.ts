@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { changeNote, showLoadingProgress, validUsername, validPassword } from './helpers';
-const ENDPOINT =  "https://insta-presence.onrender.com"; // http://127.0.0.1:6969";
+const ENDPOINT =  "http://127.0.0.1:6969"; // "https://insta-presence.onrender.com"
 
 const outputChannel = vscode.window.createOutputChannel("My Extension");
 

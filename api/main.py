@@ -48,7 +48,7 @@ async def root(username: str ,newNote: str, params: BodyParams):
             cl.load_settings(loading_file) # load the local settings
         elif params.useStoredSession == False:
             print("not loading settings here.") 
-        cl.login(username, params.password)
+        cl.login(username, params.password) # this may trigger a challenge required input, in which case it can be kind of cooked.
         cl.dump_settings(loading_file) # dumping the settings 
         USERNAMES_TO_CLIENTS[username] = cl # storing the cl. 
 
