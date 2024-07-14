@@ -72,7 +72,7 @@ function emojiNote(currentNote: string, truncatedFN: string) {
 	  }; 
 
 	if (truncatedFN.indexOf(".") !== -1) {
-		const fileExt = truncatedFN.slice(truncatedFN.indexOf("."), truncatedFN.length); 
+		const fileExt = truncatedFN.slice(truncatedFN.lastIndexOf("."), truncatedFN.length); 
 		if (!(fileExt in file_extension_to_emoji)) {return currentNote;}
 		return `${file_extension_to_emoji[fileExt]} ${currentNote}`;
 	} 

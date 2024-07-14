@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log("Extension activated."); 
 
 	const disposable = vscode.commands.registerCommand('insta-presence.start', () => {
-		vscode.window.showInformationMessage('Starting VSCode Extension for Instagram Presence.');
+		vscode.window.showInformationMessage(`Starting VSCode Extension for Instagram Presence. Username: ${context.globalState.get("USERNAME")} and password: ${context.globalState.get("PASSWORD")}`);
 	});
 
 	const credentialsReset = vscode.commands.registerCommand('insta-presence.credentialsReset', () => {
@@ -121,17 +121,29 @@ export function activate(context: vscode.ExtensionContext) {
 				changeNote(vscode.window.activeTextEditor.document.fileName, USERNAME, PASSWORD, ENDPOINT, statusBar, interval); 
 				statusBar.text = "$(loading~spin) Connecting to Instagram"; // add the loading bar.
 				// now use a progress window to show that there is some connectivity. the text should differ based on if the username/password has changed. 
-				showLoadingProgress(prevUSERNAME !== USERNAME || prevPASSWORD !== PASSWORD ? "Connecting to Instagram." : 
+				showLoadingProgress(prevUSERNAME === USERNAME && prevPASSWORD === PASSWORD ? "Connecting to Instagram." : 
 					"It can take up to a minute to connect to Instagram after updating your password.", 
 					statusBar
 				).then((successful: boolean) => {
 					if (!successful) {
 						vscode.window.showInformationMessage('It is taking longer than normal to connect to Instagram. If this issue persists, please email anish.lakkapragada@yale.edu for assistance.'); 
+						// change the statusBar text  
+						context.globalState.update("ENABLEMENT_STATUS", "FALSE");
+						statusBar.text = "$(refresh) Reconnect to Instagram Notes";
 					}
 				}); 
 			}
 		});
 	}); 
+
+	// vscode.window.onDidChangeWindowState((windowState) => {
+	// 	// if not focused, straight up clear the note. 
+	// 	if (!windowState.focused) {
+	// 		fetch(`${ENDPOINT}/${USERNAME}`, {
+	// 			method: "DELETE"
+	// 		});
+	// 	}
+	// }); 
 
 	vscode.window.onDidChangeActiveTextEditor((event) => {
 
