@@ -43,12 +43,18 @@ async def root(username: str ,newNote: str, params: BodyParams):
     if not cl or not params.useStoredSession: 
         """This means that a re-login is required."""
         cl = Client() # don't login with current session data 
+        cl.delay_range = [2, 5] # delay by 2-5 seconds
         if params.useStoredSession and os.path.isfile(loading_file): 
             print("loading settings.")
             cl.load_settings(loading_file) # load the local settings
         elif params.useStoredSession == False:
             print("not loading settings here.") 
-        cl.login(username, params.password) # this may trigger a challenge required input, in which case it can be kind of cooked.
+        try: 
+            cl.login(username, params.password) # this may trigger a challenge required input, in which case it can be kind of cooked.
+        except ChallengeRequired as e: 
+            print(e)
+            print("requiring challenge when trying to login.")
+            return {'message': 'challenge_required'}
         cl.dump_settings(loading_file) # dumping the settings 
         USERNAMES_TO_CLIENTS[username] = cl # storing the cl. 
 

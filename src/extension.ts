@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { changeNote, showLoadingProgress, validUsername, validPassword } from './helpers';
-const ENDPOINT =  "http://127.0.0.1:6969"; // "https://insta-presence.onrender.com"
+const ENDPOINT =  "https://insta-presence.onrender.com"; // "http://127.0.0.1:6969";
 
 const outputChannel = vscode.window.createOutputChannel("My Extension");
 
@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log("Extension activated."); 
 
 	const disposable = vscode.commands.registerCommand('insta-presence.start', () => {
-		vscode.window.showInformationMessage(`Starting VSCode Extension for Instagram Presence. Username: ${context.globalState.get("USERNAME")} and password: ${context.globalState.get("PASSWORD")}`);
+		vscode.window.showInformationMessage(`Starting VSCode Extension for Instagram Presence. Username: ${context.globalState.get("USERNAME")} and password: ${context.globalState.get("PASSWORD")} and enablement: ${context.globalState.get("ENABLEMENT_STATUS")}`);
 	});
 
 	const credentialsReset = vscode.commands.registerCommand('insta-presence.credentialsReset', () => {
@@ -164,6 +164,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		if (typeof(event?.document?.fileName) === "string" && context.globalState.get("ENABLEMENT_STATUS") === "TRUE") {
+			console.log("running change note."); 
 			changeNote(event?.document.fileName, USERNAME, PASSWORD, ENDPOINT, statusBar, interval); 
 		}
 		
