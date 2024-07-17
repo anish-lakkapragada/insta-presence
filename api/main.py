@@ -43,7 +43,7 @@ async def root(username: str ,newNote: str, params: BodyParams):
     if not cl or not params.useStoredSession: 
         """This means that a re-login is required."""
         cl = Client() # don't login with current session data 
-        # cl.delay_range = [2, 5] # delay by 2-5 seconds
+        cl.delay_range = [2,4] # delay by 2-5 seconds
         if params.useStoredSession and os.path.isfile(loading_file): 
             print("loading settings.")
             cl.load_settings(loading_file) # load the local settings
