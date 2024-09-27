@@ -1,5 +1,5 @@
 instagrapi
-fastapi
+fastapi[standard]
 pydantic
 uvicorn
 pillow
